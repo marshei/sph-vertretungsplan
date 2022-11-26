@@ -1,0 +1,21 @@
+---
+user: "<SPH.User>"
+password: "<SPH.Password>"
+# Specify either school city and name or id (preferred)
+school-city: "Some City"
+school-name: "X-Y-Schule"
+school-id: "4711"
+class: "E3"
+fields:
+  - Mathe
+  - Deutsch
+push-over:
+  enabled: True
+  hash-file: <path>/hash.txt
+  users:
+    - user: "Name1"
+      user-key: "<key1>"
+      api-token: "<token1>"
+    - user: "Name2"
+      user-key: "<key2>"
+      api-token: "<token2>"
