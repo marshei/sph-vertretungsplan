@@ -35,7 +35,7 @@ def read_file(file_name: str):
 
 
 def get_delegation_html(config) -> BeautifulSoup:
-    file_name = 'run/vertretungsplan.html'
+    file_name = 'vertretungsplan.html'
     if config['read-from-file']:
         return BeautifulSoup(read_file(file_name), 'html.parser')
     else:
