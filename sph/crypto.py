@@ -78,8 +78,8 @@ class RsaCrypto:
     def encrypt(self, message: bytes) -> bytes:
         # Encrypt the message with the public RSA key
         encrypted = base64.b64encode(self.cipher_rsa.encrypt(message))
-        logging.debug("Original Message : %s\nEncrypted Message: %s\n"
-                      % (message.decode("utf-8"), encrypted.decode("utf-8")))
+        # logging.debug("Original Message : %s\nEncrypted Message: %s\n"
+        #              % (message.decode("utf-8"), encrypted.decode("utf-8")))
         return encrypted
 
     def decrypt(self, message: bytes) -> bytes:
