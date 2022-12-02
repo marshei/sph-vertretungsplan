@@ -35,6 +35,7 @@ class SphSession:
         self.user = user
         self.password = password
         self.ikey = None
+        self.timeout = 30
         self.base_domain = 'start.schulportal.hessen.de'
         self.base_url = 'https://%s' % self.base_domain
         self.school_id = school_id
@@ -87,9 +88,8 @@ class SphSession:
         raise Exception("Unable to find ikey")
 
     def get_public_key(self):
-        response = self.session.get('%s/ajax.php?f=rsaPublicKey' % self.base_url)
-        response.raise_for_status()
-        rsp = json.loads(response.content)
+        response = self.get('%s/ajax.php?f=rsaPublicKey' % self.base_url)
+        rsp = json.loads(response)
         self.rsa = RsaCrypto(rsp['publickey'])
 
     def post_rsa_handshake(self):
@@ -104,7 +104,8 @@ class SphSession:
         header.update({'origin': self.base_url})
         header.update({'referer': '%s/index.php?i=%s' % (self.base_url, self.school_id)})
 
-        response = self.session.post('%s/ajax.php?f=rsaHandshake&s=%d' % (self.base_url, s), headers=header, data=data)
+        response = self.session.post('%s/ajax.php?f=rsaHandshake&s=%d' % (self.base_url, s),
+                                     headers=header, data=data, timeout=self.timeout)
         response.raise_for_status()
 
         rsp = json.loads(response.content)
@@ -120,7 +121,7 @@ class SphSession:
         sid_cookie = self.get_cookie_value('sid')
         if sid_cookie is None:
             return
-        response = self.session.post('%s/ajax_login.php' % self.base_url, 'name=%s' % sid_cookie)
+        response = self.session.post('%s/ajax_login.php' % self.base_url, 'name=%s' % sid_cookie, timeout=self.timeout)
         response.raise_for_status()
 
     def ajax_login_user(self):
@@ -135,7 +136,7 @@ class SphSession:
         header.update({'origin': self.base_url})
         header.update({'referer': '%s/index.php' % self.base_url})
 
-        response = self.session.post('%s/ajax.php' % self.base_url, headers=header, data=data)
+        response = self.session.post('%s/ajax.php' % self.base_url, headers=header, data=data, timeout=self.timeout)
         response.raise_for_status()
         logging.debug("Received login response: %d\n%s" % (response.status_code, response.text))
 
@@ -164,11 +165,11 @@ class SphSession:
         return None
 
     def logout(self):
-        response = self.session.get('%s/index.php?logout=1' % self.base_url)
+        response = self.session.get('%s/index.php?logout=1' % self.base_url, timeout=self.timeout)
         response.raise_for_status()
 
     def get(self, url: str):
-        response = self.session.get(url)
+        response = self.session.get(url, timeout=self.timeout)
         response.raise_for_status()
         self.print_session('after fetching url: %s' % url)
 
