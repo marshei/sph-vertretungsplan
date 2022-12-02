@@ -14,8 +14,10 @@ push-over:
   hash-file: <path>/hash.txt
   users:
     - user: "Name1"
+      send-errors: False
       user-key: "<key1>"
       api-token: "<token1>"
     - user: "Name2"
+      send-errors: True
       user-key: "<key2>"
       api-token: "<token2>"

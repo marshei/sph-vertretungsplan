@@ -41,9 +41,10 @@ class PushOver:
             if 'user' not in push_user or 'user-key' not in push_user or 'api-token' not in push_user:
                 raise Exception("Invalid push user configuration: %s" % push_user)
             else:
-                logging.debug("PushOver User %s added" % push_user['user'])
+                logging.debug("PushOver User %s added (send-errors = %s)"
+                              % (push_user['user'], push_user['send-errors']))
 
-    def send(self, event: dict[str, str], push_message: str) -> None:
+    def send(self, event: dict[str, str], push_message: str, is_error: bool = False) -> None:
         if not self.enabled:
             logging.info("PushOver Messages NOT delivered: %s" % push_message)
             return
@@ -53,11 +54,15 @@ class PushOver:
 
         if not self.hashes.already_known(key):
             self.hashes.add(key, value)
-            self.send_pushover(push_message)
+            self.send_pushover(push_message, is_error)
             time_str = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
             logging.info("%s New event: %s - %s" % (time_str, key, value))
 
-    def send_pushover(self, message: str) -> None:
+    def send_pushover(self, message: str, is_error: bool) -> None:
         for push_user in self.push_users:
-            logging.debug("Sending push message to %s" % push_user['user'])
-            send_pushover_to_user(push_user['user-key'], push_user['api-token'], message)
+            if not is_error:
+                logging.debug("Sending push message to %s" % push_user['user'])
+                send_pushover_to_user(push_user['user-key'], push_user['api-token'], message)
+            elif is_error == push_user['send-errors']:
+                logging.debug("Sending error push message to %s" % push_user['user'])
+                send_pushover_to_user(push_user['user-key'], push_user['api-token'], message)
