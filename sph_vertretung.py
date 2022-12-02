@@ -134,7 +134,7 @@ def main():
             'Datum': datetime.now().date().strftime('%d.%m.%Y'),
             'Fehlermeldung': str(e)
         }
-        push_service.send(error, "ERROR: Please check logs.")
+        push_service.send(error, "ERROR: %s" % str(error), is_error=True)
 
 
 if __name__ == '__main__':
