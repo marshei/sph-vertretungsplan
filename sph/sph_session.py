@@ -7,6 +7,7 @@ import urllib.parse
 
 import requests
 from bs4 import BeautifulSoup
+from requests import Response
 
 from sph.crypto import AesCrypto, RsaCrypto
 
@@ -108,7 +109,7 @@ class SphSession:
 
         rsp = json.loads(response.content)
         decrypted_challenge = self.aes.decrypt(rsp['challenge'], self.session_key)
-        logging.debug("Decrypted challenge: %s" % decrypted_challenge)
+        # logging.debug("Decrypted challenge: %s" % decrypted_challenge)
 
         if self.session_key != decrypted_challenge:
             raise Exception("Decrypted challenge does not match the session key!")
@@ -136,16 +137,25 @@ class SphSession:
 
         response = self.session.post('%s/ajax.php' % self.base_url, headers=header, data=data)
         response.raise_for_status()
-        if len(response.content) == 0:
-            raise Exception("Failed to login")
+        logging.debug("Received login response: %d\n%s" % (response.status_code, response.text))
 
-        try:
-            rsp = json.loads(response.text)
-            if rsp['name'] is None:
-                raise Exception("Missing name in response")
-            logging.debug("%s logged in!" % rsp['name'])
-        except Exception as e:
-            raise Exception("Failed to login: %s" % str(e))
+        self.evaluate_login_response(response)
+
+    def evaluate_login_response(self, response: Response):
+        if len(response.content) == 0:
+            raise Exception("Failed to login: %s" % self.user)
+
+        if ('text/plain' in response.headers['content-type'] and response.text.startswith("{")) or (
+                'application/json' in response.headers['content-type']):
+            try:
+                rsp = json.loads(response.text)
+                msg = "%s logged in!" % rsp['name']
+            except Exception as e:
+                msg = str(e)
+        else:
+            msg = response.text
+
+        logging.debug("Login result: %s" % msg)
 
     def get_cookie_value(self, name: str):
         for c in self.session.cookies:
