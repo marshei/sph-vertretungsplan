@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 
 from delegation_table import DelegationTable
 from push_over.push_over import PushOver
+from school_holidays.school_holidays import SchoolHolidays
 from sph.sph_school import SphSchool
 from sph.sph_session import SphSession
 
@@ -124,6 +125,12 @@ def main():
     logging.debug("Arguments: %s", args)
 
     config = get_configuration(args)
+
+    if 'school-holidays' in config:
+        holiday = SchoolHolidays(config['school-holidays'])
+        if holiday.is_holiday_today():
+            return
+
     push_service = PushOver(config['push-over'])
     try:
         soup = get_delegation_html(config)
