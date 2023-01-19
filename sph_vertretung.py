@@ -4,14 +4,13 @@ import argparse
 import logging
 import traceback
 from datetime import datetime
-from typing import Any
 
-import yaml
 from bs4 import BeautifulSoup
 
 from delegation_table import DelegationTable
 from push_over.push_over import PushOver
 from school_holidays.school_holidays import SchoolHolidays
+from sph.config import Config
 from sph.sph_school import SphSchool
 from sph.sph_session import SphSession
 
@@ -35,7 +34,7 @@ def read_file(file_name: str):
         raise Exception("ERROR: Unable to read %s: %s" % (file_name, str(e)))
 
 
-def get_delegation_html(config) -> BeautifulSoup:
+def get_delegation_html(config: Config) -> BeautifulSoup:
     file_name = 'vertretungsplan.html'
     if config['read-from-file']:
         return BeautifulSoup(read_file(file_name), 'html.parser')
@@ -86,24 +85,6 @@ def push_message(event):
     return event['Datum'] + ": " + event['Hinweis'] + " im Fach " + event['Fach'] + " in Stunde " + event['Stunde']
 
 
-def get_configuration_from_file(config_file: str) -> dict[str, Any]:
-    with open(config_file, "r") as stream:
-        try:
-            return yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            raise Exception("Failed to parse configuration file: %s" % str(exc))
-
-
-def get_configuration(args) -> dict[str, Any]:
-    config = get_configuration_from_file(args.config_file)
-    if args.read_from_file:
-        config['read-from-file'] = True
-    else:
-        config['read-from-file'] = False
-    logging.debug("Config: %s" % config)
-    return config
-
-
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Vertretungsplan im Schulportal Hessen (SPH) prüfen.')
     parser.add_argument('-c', '--config-file', help='Yaml config file', action='store', type=str, required=True)
@@ -124,12 +105,11 @@ def main():
 
     logging.debug("Arguments: %s", args)
 
-    config = get_configuration(args)
+    config = Config(args.config_file, args.read_from_file)
 
-    if 'school-holidays' in config:
-        holiday = SchoolHolidays(config['school-holidays'])
-        if holiday.is_holiday_today():
-            return
+    holiday = SchoolHolidays(config['school-holidays'])
+    if holiday.is_holiday_today():
+        return
 
     push_service = PushOver(config['push-over'])
     try:

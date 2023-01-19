@@ -138,7 +138,6 @@ class SphSession:
 
         response = self.session.post('%s/ajax.php' % self.base_url, headers=header, data=data, timeout=self.timeout)
         response.raise_for_status()
-        logging.debug("Received login response: %d\n%s" % (response.status_code, response.text))
 
         self.evaluate_login_response(response)
 
@@ -146,14 +145,18 @@ class SphSession:
         if len(response.content) == 0:
             raise Exception("Failed to login: %s" % self.user)
 
-        if ('text/plain' in response.headers['content-type'] and response.text.startswith("{")) or (
-                'application/json' in response.headers['content-type']):
+        if ('text/plain' in response.headers['content-type'] and response.text.startswith("{")) \
+                or ('application/json' in response.headers['content-type']):
             try:
                 rsp = json.loads(response.text)
-                msg = "%s logged in!" % rsp['name']
+                rsp['name'] = '<Set>'
+                logging.debug("Received login response: %d\n%s" % (response.status_code, rsp))
+                msg = "logged in!"
             except Exception as e:
+                logging.debug("Received login response: %d\n%s" % (response.status_code, response.text))
                 msg = str(e)
         else:
+            logging.debug("Received login response: %d\n%s" % (response.status_code, response.text))
             msg = response.text
 
         logging.debug("Login result: %s" % msg)

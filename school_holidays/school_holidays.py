@@ -8,9 +8,10 @@ class SchoolHolidays:
     def __init__(self, holiday_config: List[dict[Any, Any]]) -> None:
         self.today = date.today()
         self.holiday_config = None
-        for year in holiday_config:
-            if self.today.year in year:
-                self.holiday_config = year[self.today.year]
+        if holiday_config is not None:
+            for year in holiday_config:
+                if self.today.year in year:
+                    self.holiday_config = year[self.today.year]
 
     def is_holiday_today(self) -> bool:
         if self.holiday_config is None:
