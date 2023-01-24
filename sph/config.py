@@ -1,3 +1,4 @@
+import copy
 import logging
 from typing import Any
 
@@ -32,7 +33,7 @@ class Config:
         if self.config is None:
             return self.NOT_PRESENT
 
-        c = self.config.copy()
+        c: dict[str, Any] = copy.deepcopy(self.config)
         c['user'] = self.__anonymize(c['user'])
         c['password'] = self.__anonymize(c['password'])
         if 'push-over' in c and 'users' in c['push-over']:

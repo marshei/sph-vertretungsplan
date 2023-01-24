@@ -20,7 +20,9 @@ def send_pushover_to_user(user_key: str, api_token: str, message: str) -> None:
                      "token": api_token,
                      "user": user_key,
                      "message": message}), {"Content-type": "application/x-www-form-urlencoded"})
-    conn.getresponse()
+    response = conn.getresponse()
+    if response.getcode() != 200:
+        logging.error("Failed to send pushover message")
 
 
 class PushOver:
