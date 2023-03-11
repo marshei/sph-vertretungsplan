@@ -2,8 +2,11 @@
 
 import argparse
 import logging
+import signal
+import sys
 import traceback
 from datetime import datetime
+from typing import Any
 
 from bs4 import BeautifulSoup
 
@@ -96,6 +99,13 @@ def check_sph(config: Config, holiday: SchoolHolidays, push_service: PushOver):
     parse_delegation_html(push_service, soup, config['class'], config['fields'])
 
 
+def signal_handler(signal_num: int, frame: Any) -> None:
+    # while execution.is_executing:
+    #    time.sleep(1)
+    logging.info("Exiting on signal %s ..." % signal.Signals(signal_num).name)
+    sys.exit(0)
+
+
 def main():
     args = parse_arguments()
     if args.debug:
@@ -111,6 +121,9 @@ def main():
     holiday = SchoolHolidays(config['school-holidays'])
     push_service = PushOver(config['push-over'], config['config-dir'])
     execution = Execution(config['execution'], push_service)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     try:
         execution.run_scheduled(lambda: check_sph(config, holiday, push_service))

@@ -31,6 +31,6 @@ RUN pip3 --no-cache-dir install --upgrade pip && \
 
 VOLUME [ "/app/config" ]
 
-ENTRYPOINT [ "/app/run.sh", "--config-file", "/app/config/sph.yml" ]
+ENTRYPOINT [ "/usr/libexec/platform-python", "/app/sph_vertretung.py", "--config-file", "/app/config/sph.yml" ]
 
 LABEL description="Schulportal Hessen - Vertretungsplan"

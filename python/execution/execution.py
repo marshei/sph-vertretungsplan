@@ -1,10 +1,10 @@
-from datetime import datetime
-import time
 import logging
+import time
 import traceback
-import pycron
+from datetime import datetime
 from typing import Any
 
+import pycron
 from push_over.push_over import PushOver
 
 
@@ -12,6 +12,7 @@ class Execution:
 
     def __init__(self, execution_config: dict[str, Any], push_service: PushOver) -> None:
         self.interval_seconds = 60
+        self.is_executing_callback = False
         self.push_service = push_service
         self.cron = []
 
@@ -27,11 +28,15 @@ class Execution:
             try:
                 pycron.is_now(c)
             except Exception as e:
-                raise Exception("Invalid cron sepcification: %s (%s)" %
+                raise Exception("Invalid cron specification: %s (%s)" %
                                 (c, str(e)))
 
+    def is_executing(self) -> bool:
+        return self.is_executing_callback
+    
     def run_function(self, func) -> None:
         try:
+            self.is_executing_callback = True
             func()
         except Exception as e:
             traceback.print_exc()
@@ -41,11 +46,13 @@ class Execution:
             }
             self.push_service.send(error, "ERROR: %s" %
                                    str(error), is_error=True)
+        finally:
+            self.is_executing_callback = False
 
     def run_scheduled(self, func) -> None:
         if len(self.cron) == 0:
             logging.warning(
-                "Calling function only once as no cron sepcifications were given!")
+                "Calling function only once as no cron specifications were given!")
             self.run_function(func)
             return
 
@@ -53,12 +60,11 @@ class Execution:
         while True:
             if need_execution:
                 self.run_function(func)
-                since = datetime.now()
 
             time.sleep(self.interval_seconds)
             need_execution = self.need_execution()
 
-    def need_execution(self):
+    def need_execution(self) -> bool:
         dt = datetime.now()
         for c in self.cron:
             if pycron.is_now(c, dt):
