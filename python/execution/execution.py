@@ -20,11 +20,6 @@ class Execution:
                 raise Exception("Invalid Execution configuration: %s" %
                                 execution_config)
 
-            self.interval_seconds = execution_config['interval'] * 60
-            if self.interval_seconds < 60:
-                logging.warning("Increasing execution interval from %d to %d seconds" %
-                                (self.interval_seconds, 60))
-                self.interval_seconds = 60
             if execution_config['cron'] is not None:
                 self.cron = execution_config['cron']
 
