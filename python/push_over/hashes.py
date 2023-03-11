@@ -1,7 +1,14 @@
+import logging
+
+
 class Hashes:
 
-    def __init__(self, filename) -> None:
-        self.filename = filename
+    def __init__(self, filename: str, config_dir: str) -> None:
+        if filename.startswith('/'):
+            self.filename = filename
+        else:
+            self.filename = config_dir + '/' + filename
+        logging.debug("Using hash file: %s" % self.filename)
         self.separator = ' - '
         self.hashes = {}
         try:

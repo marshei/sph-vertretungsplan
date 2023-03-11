@@ -8,13 +8,15 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 
 from delegation_table import DelegationTable
+from execution.execution import Execution
 from push_over.push_over import PushOver
 from school_holidays.school_holidays import SchoolHolidays
 from sph.config import Config
 from sph.sph_school import SphSchool
 from sph.sph_session import SphSession
 
-logFormatter = logging.Formatter("%(asctime)s [%(funcName)-12.12s] [%(levelname)-4.7s] %(message)s")
+logFormatter = logging.Formatter(
+    "%(asctime)s [%(funcName)-12.12s] [%(levelname)-4.7s] %(message)s")
 rootLogger = logging.getLogger()
 
 consoleHandler = logging.StreamHandler()
@@ -24,48 +26,39 @@ rootLogger.addHandler(consoleHandler)
 rootLogger.setLevel(logging.INFO)
 
 
-def read_file(file_name: str):
-    try:
-        file = open(file_name, 'r')
-        contents = file.read()
-        file.close()
-        return contents
-    except Exception as e:
-        raise Exception("ERROR: Unable to read %s: %s" % (file_name, str(e)))
-
-
 def get_delegation_html(config: Config) -> BeautifulSoup:
-    file_name = 'vertretungsplan.html'
-    if config['read-from-file']:
-        return BeautifulSoup(read_file(file_name), 'html.parser')
-    else:
-        sph_school = SphSchool(city=config['school-city'], name=config['school-name'], school_id=config['school-id'])
-        sph_session = SphSession(school_id=sph_school.get_id(), user=config['user'], password=config['password'])
+    sph_school = SphSchool(
+        city=config['school-city'], name=config['school-name'], school_id=config['school-id'])
+    sph_session = SphSession(school_id=sph_school.get_id(
+    ), user=config['user'], password=config['password'])
 
-        sph_session.login()
-        try:
-            delegation_txt = sph_session.get('https://start.schulportal.hessen.de/vertretungsplan.php')
-            soup = BeautifulSoup(delegation_txt, 'html.parser')
-            file = open(file_name, 'w')
-            file.write(soup.prettify())
-            file.close()
-        finally:
-            sph_session.logout()
+    sph_session.login()
+    try:
+        delegation_txt = sph_session.get(
+            'https://start.schulportal.hessen.de/vertretungsplan.php')
+        soup = BeautifulSoup(delegation_txt, 'html.parser')
+        file = open("vertretungsplan.html", 'w')
+        file.write(soup.prettify())
+        file.close()
+    finally:
+        sph_session.logout()
 
-        return soup
+    return soup
 
 
 def parse_delegation_html(push_service: PushOver, soup: BeautifulSoup, clazz: str, fields: list[str]):
     now = datetime.now()
     for div in get_divs_id_beginning_with(soup, 'tag'):
-        date = datetime.strptime(div.get('id').replace('tag', ''), '%d_%m_%Y').date()
+        date = datetime.strptime(
+            div.get('id').replace('tag', ''), '%d_%m_%Y').date()
         date_str = date.strftime('%d.%m.%Y')
 
         if date < now.date():
             logging.info("Skipping " + date.strftime('%d.%m.%Y') + " ...")
             continue
 
-        table = div.find_next('table', {'id': div.get('id').replace('tag', 'vtable')})
+        table = div.find_next(
+            'table', {'id': div.get('id').replace('tag', 'vtable')})
         dt = DelegationTable(clazz, fields, date_str, table)
         events = dt.search_by_class()
         for event in events:
@@ -86,12 +79,21 @@ def push_message(event):
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Vertretungsplan im Schulportal Hessen (SPH) prüfen.')
-    parser.add_argument('-c', '--config-file', help='Yaml config file', action='store', type=str, required=True)
+    parser = argparse.ArgumentParser(
+        description='Vertretungsplan im Schulportal Hessen (SPH) prüfen.')
+    parser.add_argument('-c', '--config-file', help='Yaml config file',
+                        action='store', type=str, required=True)
     parser.add_argument('-d', '--debug', action=argparse.BooleanOptionalAction)
-    parser.add_argument('-r', '--read-from-file', action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
     return args
+
+
+def check_sph(config: Config, holiday: SchoolHolidays, push_service: PushOver):
+    if holiday.is_holiday_today():
+        return
+
+    soup = get_delegation_html(config)
+    parse_delegation_html(push_service, soup, config['class'], config['fields'])
 
 
 def main():
@@ -105,16 +107,13 @@ def main():
 
     logging.debug("Arguments: %s", args)
 
-    config = Config(args.config_file, args.read_from_file)
-
+    config = Config(args.config_file, False)
     holiday = SchoolHolidays(config['school-holidays'])
-    if holiday.is_holiday_today():
-        return
+    push_service = PushOver(config['push-over'], config['config-dir'])
+    execution = Execution(config['execution'], push_service)
 
-    push_service = PushOver(config['push-over'])
     try:
-        soup = get_delegation_html(config)
-        parse_delegation_html(push_service, soup, config['class'], config['fields'])
+        execution.run_scheduled(lambda: check_sph(config, holiday, push_service))
     except Exception as e:
         traceback.print_exc()
         error = {

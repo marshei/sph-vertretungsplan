@@ -70,3 +70,26 @@ die folgende Zeile einfügen:
 # Vertretungsplan halb-stündlich zwischen 6 und 22 Uhr wochentags prüfen
 00,30 6-22 * * MON,TUE,WED,THU,FRI <path>/sph.sh
 ```
+
+### Ausführung im Container
+Für die Ausführung im Container läuft der Python Prozess in einer Schleife und prüft in einem gegebenen Interval, ob das Schulportal kontaktiert werden soll. Dazu wird die von `cron` bekannte Syntax mit Hilfe von `pycron` geprüft.
+Folgende Konfiguration steuert das Verhalten:
+```yaml
+  execution:
+    # specify number of minutes between two checks
+    interval: 5
+    # cron specification for pycron
+    cron:
+      - "00,30 6-22 * * MON,TUE,WED,THU,FRI"
+      - "00,30 18-20 * * SUN"
+```
+Ein Interval muss mindestens eine Minute betragen.
+
+Für die Ausführung im Container muss das Container Image mit Hilfe des Skripts `build.sh` erstellt werden. Der Container kann dann wie folgt gestartet werden
+```shell
+podman run -d --name "sph" \
+           -v $(pwd)/run:/app/config:Z \
+           localhost/marshei/sph:latest --debug
+```
+
+Die Handhabung in einer Registry wird hier nicht beschrieben.

@@ -1,5 +1,6 @@
 import copy
 import logging
+import os
 from typing import Any
 
 import yaml
@@ -16,6 +17,7 @@ class Config:
             self.config['read-from-file'] = True
         else:
             self.config['read-from-file'] = False
+        self.config['config-dir'] = os.path.dirname(os.path.abspath(self.filename))
         logging.debug("Config: %s" % self)
 
     def has_key(self, key: str) -> bool:
@@ -54,4 +56,5 @@ class Config:
             try:
                 return yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                raise Exception("Failed to parse configuration file: %s" % str(exc))
+                raise Exception(
+                    "Failed to parse configuration file: %s" % str(exc))
