@@ -5,6 +5,8 @@ import logging
 import signal
 import sys
 import traceback
+import pytz
+
 from datetime import datetime
 from typing import Any
 
@@ -18,8 +20,29 @@ from sph.config import Config
 from sph.sph_school import SphSchool
 from sph.sph_session import SphSession
 
-logFormatter = logging.Formatter(
-    "%(asctime)s [%(funcName)-12.12s] [%(levelname)-4.7s] %(message)s")
+class Formatter(logging.Formatter):
+    """override logging.Formatter to use an aware datetime object"""
+
+    def converter(self, timestamp):
+        # Create datetime in UTC
+        dt = datetime.fromtimestamp(timestamp, tz=pytz.UTC)
+        # Change datetime's timezone
+        return dt.astimezone(pytz.timezone('Europe/Berlin'))
+
+    def formatTime(self, record, datefmt=None):
+        dt = self.converter(record.created)
+        if datefmt:
+            s = dt.strftime(datefmt)
+        else:
+            try:
+                s = dt.isoformat(timespec='milliseconds')
+            except TypeError:
+                s = dt.isoformat()
+        return s
+
+logFormatter = Formatter(
+    fmt="%(asctime)s [%(funcName)-12.12s] [%(levelname)-4.7s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S %Z")
 rootLogger = logging.getLogger()
 
 consoleHandler = logging.StreamHandler()

@@ -19,6 +19,7 @@ FROM ubi9-minimal:${UBI9_MINIMAL_IMAGE_VERSION}
 USER root
 
 RUN microdnf install -y python3.9 python3.9-pip && \
+    microdnf reinstall -y tzdata && \
     microdnf clean all
 
 COPY --from=install-resource-provider /app /app
@@ -28,6 +29,8 @@ RUN pip3 --no-cache-dir install --upgrade pip && \
     pip3 --no-cache-dir install -r /app/requirements.txt
 
 VOLUME [ "/app/config" ]
+
+ENV TZ=Europe/Berlin
 
 ENTRYPOINT [ "/usr/libexec/platform-python", "/app/sph_vertretung.py", "--config-file", "/app/config/sph.yml" ]
 

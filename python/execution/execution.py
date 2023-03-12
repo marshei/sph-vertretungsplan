@@ -22,7 +22,8 @@ class Execution:
                                 execution_config)
 
             if execution_config['cron'] is not None:
-                self.cron = execution_config['cron']
+                for spec in execution_config['cron']:
+                    self.cron.append(spec.lower())
 
         for c in self.cron:
             try:
