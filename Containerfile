@@ -8,11 +8,9 @@ RUN microdnf install -y findutils && \
     mkdir -p /app/config
 
 COPY requirements.txt /app/requirements.txt
-COPY container/run.sh /app/run.sh
 COPY python/ /app/
 
-RUN chmod a+x /app/run.sh && \
-    find /app -not -path "/app/venv/*" | grep -E "(/__pycache__$|\.pyc$|\.pyo$)" | xargs rm -rf
+RUN find /app -not -path "/app/venv/*" | grep -E "(/__pycache__$|\.pyc$|\.pyo$)" | xargs rm -rf
 
 # ---------------------------------------------
 # Build the final image
