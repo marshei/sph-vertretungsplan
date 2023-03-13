@@ -47,8 +47,8 @@ class PushOver:
             if 'user' not in push_user or 'user-key' not in push_user or 'api-token' not in push_user:
                 raise Exception("Invalid push user configuration: %s" % push_user)
             else:
-                logging.debug("PushOver User %s added (send-errors = %s)"
-                              % (push_user['user'], push_user['send-errors']))
+                logging.info("PushOver User %s added (send-errors = %s)"
+                             % (push_user['user'], push_user['send-errors']))
 
     def send(self, event: dict[str, str], push_message: str, is_error: bool = False) -> None:
         if not self.enabled:

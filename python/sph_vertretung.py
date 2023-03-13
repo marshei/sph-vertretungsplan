@@ -118,13 +118,12 @@ def check_sph(config: Config, holiday: SchoolHolidays, push_service: PushOver):
     if holiday.is_holiday_today():
         return
 
+    logging.info("Checking SPH ...")
     soup = get_delegation_html(config)
     parse_delegation_html(push_service, soup, config['class'], config['fields'])
 
 
 def signal_handler(signal_num: int, frame: Any) -> None:
-    # while execution.is_executing:
-    #    time.sleep(1)
     logging.info("Exiting on signal %s ..." % signal.Signals(signal_num).name)
     sys.exit(0)
 
@@ -138,7 +137,7 @@ def main():
         logging.getLogger("requests").setLevel(logging.INFO)
         logging.getLogger("urllib3").setLevel(logging.INFO)
 
-    logging.debug("Arguments: %s", args)
+    logging.info("Arguments: %s", args)
 
     config = Config(args.config_file, False)
     holiday = SchoolHolidays(config['school-holidays'])

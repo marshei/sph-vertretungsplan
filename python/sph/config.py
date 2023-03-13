@@ -18,7 +18,7 @@ class Config:
         else:
             self.config['read-from-file'] = False
         self.config['config-dir'] = os.path.dirname(os.path.abspath(self.filename))
-        logging.debug("Config: %s" % self)
+        logging.info("Config: %s" % self)
 
     def has_key(self, key: str) -> bool:
         return key in self.config
