@@ -45,8 +45,11 @@ class Execution:
                 'Datum': datetime.now().date().strftime('%d.%m.%Y'),
                 'Fehlermeldung': str(e)
             }
-            self.push_service.send(error, "ERROR: %s" %
-                                   str(error), is_error=True)
+            try:
+                self.push_service.send(error, "ERROR: %s" %
+                                       str(error), is_error=True)
+            except:
+                logging.error("Failed sending error: %s", str(error))
         finally:
             self.is_executing_callback = False
 
