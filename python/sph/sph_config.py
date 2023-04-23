@@ -6,7 +6,7 @@ from typing import Any
 import yaml
 
 
-class Config:
+class SphConfig:
     NOT_PRESENT = '<Not Set>'
     PRESENT = '<Set>'
 
@@ -17,8 +17,9 @@ class Config:
             self.config['read-from-file'] = True
         else:
             self.config['read-from-file'] = False
-        self.config['config-dir'] = os.path.dirname(os.path.abspath(self.filename))
-        logging.info("Config: %s" % self)
+        self.config['config-dir'] = os.path.dirname(
+            os.path.abspath(self.filename))
+        logging.info("Config: {}".format(self))
 
     def has_key(self, key: str) -> bool:
         return key in self.config
@@ -56,5 +57,5 @@ class Config:
             try:
                 return yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                raise Exception(
-                    "Failed to parse configuration file: %s" % str(exc))
+                raise Exception("Failed to parse configuration file: {e}"
+                                .format(e=str(exc)))

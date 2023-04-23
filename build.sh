@@ -11,7 +11,8 @@ trap clean_up EXIT
 IMAGE_FQN="$1"
 if [ -z "${IMAGE_FQN}" ]
 then
-    IMAGE_FQN="marshei/sph:latest"
+    echo "ERROR: Image name and tag missing!"
+    exit 1
 fi
 
 podman build --no-cache --tag "${IMAGE_FQN}" .

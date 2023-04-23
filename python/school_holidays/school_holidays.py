@@ -15,17 +15,21 @@ class SchoolHolidays:
 
     def is_holiday_today(self) -> bool:
         if self.holiday_config is None:
-            logging.debug("No school holidays configured for %d!" % self.today.year)
+            logging.debug("No school holidays configured for {year}!"
+                          .format(year=self.today.year))
             return False
 
         for holiday in self.holiday_config:
             if 'name' not in holiday or 'from' not in holiday or 'to' not in holiday:
-                raise Exception("Invalid holiday configuration: %s" % holiday)
+                raise Exception("Invalid holiday configuration: {}"
+                                .format(holiday))
 
             if not isinstance(holiday['from'], date) or not isinstance(holiday['to'], date):
-                raise Exception("Invalid holiday configuration: %s" % holiday)
+                raise Exception("Invalid holiday configuration: {}"
+                                .format(holiday))
 
             if holiday['from'] <= self.today <= holiday['to']:
-                logging.debug("Today is a holiday in %s" % holiday['name'])
+                logging.debug("Today is a holiday in {}"
+                              .format(holiday['name']))
                 return True
         return False

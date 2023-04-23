@@ -8,7 +8,7 @@ class Hashes:
             self.filename = filename
         else:
             self.filename = config_dir + '/' + filename
-        logging.debug("Using hash file: %s" % self.filename)
+        logging.debug("Using hash file {}".format(self.filename))
         self.separator = ' - '
         self.hashes = {}
         try:

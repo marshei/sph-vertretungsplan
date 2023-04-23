@@ -16,12 +16,13 @@ from delegation_table import DelegationTable
 from execution.execution import Execution
 from push_over.push_over import PushOver
 from school_holidays.school_holidays import SchoolHolidays
-from sph.config import Config
+from sph.sph_config import SphConfig
 from sph.sph_school import SphSchool
 from sph.sph_session import SphSession
 
-class Formatter(logging.Formatter):
-    """override logging.Formatter to use an aware datetime object"""
+
+class TimezoneAwareLogFormatter(logging.Formatter):
+    """override logging.Formatter to use an timezone-aware datetime object"""
 
     def converter(self, timestamp):
         # Create datetime in UTC
@@ -40,7 +41,8 @@ class Formatter(logging.Formatter):
                 s = dt.isoformat()
         return s
 
-logFormatter = Formatter(
+
+logFormatter = TimezoneAwareLogFormatter(
     fmt="%(asctime)s [%(funcName)-12.12s] [%(levelname)-4.7s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S %Z")
 rootLogger = logging.getLogger()
@@ -52,16 +54,13 @@ rootLogger.addHandler(consoleHandler)
 rootLogger.setLevel(logging.INFO)
 
 
-def get_delegation_html(config: Config) -> BeautifulSoup:
-    sph_school = SphSchool(
-        city=config['school-city'], name=config['school-name'], school_id=config['school-id'])
-    sph_session = SphSession(school_id=sph_school.get_id(
-    ), user=config['user'], password=config['password'])
+def get_delegation_html(school: SphSchool, user: str, password: str) -> BeautifulSoup:
+    sph_session = SphSession(school_id=school.get_id(),
+                             user=user, password=password)
 
     sph_session.login()
     try:
-        delegation_txt = sph_session.get(
-            'https://start.schulportal.hessen.de/vertretungsplan.php')
+        delegation_txt = sph_session.get('vertretungsplan.php')
         soup = BeautifulSoup(delegation_txt, 'html.parser')
         file = open("vertretungsplan.html", 'w')
         file.write(soup.prettify())
@@ -100,7 +99,7 @@ def get_divs_id_beginning_with(soup: BeautifulSoup, div_id_begins_with: str):
     return result
 
 
-def push_message(event):
+def push_message(event) -> str:
     return event['Datum'] + ": " + event['Hinweis'] + " im Fach " + event['Fach'] + " in Stunde " + event['Stunde']
 
 
@@ -114,17 +113,19 @@ def parse_arguments():
     return args
 
 
-def check_sph(config: Config, holiday: SchoolHolidays, push_service: PushOver):
+def check_sph(config: SphConfig, school: SphSchool, holiday: SchoolHolidays, push_service: PushOver) -> None:
     if holiday.is_holiday_today():
         return
 
     logging.info("Checking SPH ...")
-    soup = get_delegation_html(config)
-    parse_delegation_html(push_service, soup, config['class'], config['fields'])
+    soup = get_delegation_html(school, config['user'], config['password'])
+    parse_delegation_html(push_service, soup,
+                          config['class'], config['fields'])
 
 
 def signal_handler(signal_num: int, frame: Any) -> None:
-    logging.info("Exiting on signal %s ..." % signal.Signals(signal_num).name)
+    logging.info("Exiting on signal {sig} ..."
+                 .format(sig=signal.Signals(signal_num).name))
     sys.exit(0)
 
 
@@ -137,9 +138,11 @@ def main():
         logging.getLogger("requests").setLevel(logging.INFO)
         logging.getLogger("urllib3").setLevel(logging.INFO)
 
-    logging.info("Arguments: %s", args)
+    logging.info("Arguments: {}".format(args))
 
-    config = Config(args.config_file, False)
+    config = SphConfig(args.config_file, False)
+    school = SphSchool(city=config['school-city'], name=config['school-name'],
+                       school_id=config['school-id'])
     holiday = SchoolHolidays(config['school-holidays'])
     push_service = PushOver(config['push-over'], config['config-dir'])
     execution = Execution(config['execution'], push_service)
@@ -148,14 +151,11 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     try:
-        execution.run_scheduled(lambda: check_sph(config, holiday, push_service))
+        execution.run_scheduled(lambda: check_sph(config, school,
+                                                  holiday, push_service))
     except Exception as e:
         traceback.print_exc()
-        error = {
-            'Datum': datetime.now().date().strftime('%d.%m.%Y'),
-            'Fehlermeldung': str(e)
-        }
-        push_service.send(error, "ERROR: %s" % str(error), is_error=True)
+        push_service.send_error(str(e))
 
 
 if __name__ == '__main__':

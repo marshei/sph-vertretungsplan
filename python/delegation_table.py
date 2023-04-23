@@ -11,7 +11,7 @@ def get_value(cells, idx: int) -> str:
 
 class DelegationTable:
 
-    def __init__(self, clazz: str, fields: list[str], date: str, delegation_table: bs4.element.PageElement):
+    def __init__(self, clazz: str, fields: list[str], date: str, delegation_table: bs4.element.PageElement) -> None:
         self.clazz = clazz
         self.fields = fields
         self.date = date
@@ -86,6 +86,6 @@ class DelegationTable:
         note = get_value(cells, self.note_idx)
         note2 = get_value(cells, self.note2_idx)
         if len(note2) > 0:
-            return '%s (%s)' % (note, note2)
+            return "{n} ({n2})".format(n=note, n2=note2)
         else:
             return note

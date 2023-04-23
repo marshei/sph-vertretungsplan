@@ -18,8 +18,8 @@ class Execution:
 
         if execution_config is not None:
             if 'cron' not in execution_config:
-                raise Exception("Invalid Execution configuration: %s" %
-                                execution_config)
+                raise Exception("Invalid Execution configuration: {cfg}"
+                                .format(cfg=execution_config))
 
             if execution_config['cron'] is not None:
                 for spec in execution_config['cron']:
@@ -29,44 +29,34 @@ class Execution:
             try:
                 pycron.is_now(c)
             except Exception as e:
-                raise Exception("Invalid cron specification: %s (%s)" %
-                                (c, str(e)))
+                raise Exception("Invalid cron specification: {spec} ({exc})"
+                                .format(spec=c, exc=str(e)))
 
     def is_executing(self) -> bool:
         return self.is_executing_callback
-    
+
     def run_function(self, func) -> None:
         try:
             self.is_executing_callback = True
             func()
         except Exception as e:
             traceback.print_exc()
-            error = {
-                'Datum': datetime.now().date().strftime('%d.%m.%Y'),
-                'Fehlermeldung': str(e)
-            }
-            try:
-                self.push_service.send(error, "ERROR: %s" %
-                                       str(error), is_error=True)
-            except:
-                logging.error("Failed sending error: %s", str(error))
+            self.push_service.send_error(str(e))
         finally:
             self.is_executing_callback = False
 
     def run_scheduled(self, func) -> None:
         if len(self.cron) == 0:
-            logging.warning(
-                "Calling function only once as no cron specifications were given!")
+            logging.warning("No schedule, executing once!")
             self.run_function(func)
             return
 
-        need_execution = self.need_execution()
         while True:
+            need_execution = self.need_execution()
             if need_execution:
                 self.run_function(func)
 
             time.sleep(self.interval_seconds)
-            need_execution = self.need_execution()
 
     def need_execution(self) -> bool:
         dt = datetime.now()

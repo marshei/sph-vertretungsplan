@@ -16,11 +16,13 @@ class SphSchool:
             if self.school_city is None or self.school_name is None:
                 raise Exception("School city and name have to be provided")
             self.school_id = self.search_institution_id()
-            logging.debug("Using identified school id: %s" % self.school_id)
+            logging.debug("Using identified school id: {}"
+                          .format(self.school_id))
         else:
             if self.school_city is not None or self.school_name is not None:
                 raise Exception("School city and name must not be provided")
-            logging.debug("Using provided school id: %s" % self.school_id)
+            logging.debug("Using provided school id: {}"
+                          .format(self.school_id))
 
     def get_id(self):
         return self.school_id
@@ -31,7 +33,8 @@ class SphSchool:
             for school in school_area[u'Schulen']:
                 if self.school_name in school[u'Name'] and self.school_city in school[u'Ort']:
                     return school[u'Id']
-        raise Exception("Could not find Id for school %s in %s" % (self.school_name, self.school_city))
+        raise Exception("Could not find Id for school {name} in {city}"
+                        .format(name=self.school_name, city=self.school_city))
 
     def get_school_list(self):
         session = requests.Session()
