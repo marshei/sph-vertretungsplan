@@ -41,6 +41,7 @@ class SphSession:
         self.school_id = school_id
         self.user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 ' \
                           'Safari/537.36 '
+        self.logged_in = False
 
         self.session = requests.Session()
         self.session.headers.update({'upgrade-insecure-requests': '1'})
@@ -52,34 +53,42 @@ class SphSession:
         logging.debug("Session Key: {key}".format(key=self.session_key))
         self.rsa = None
 
-    def print_session(self, explanation: str):
-        logging.debug('-' * 80)
-        logging.debug('--- Cookies: {}'.format(explanation))
-        for cookie in self.session.cookies:
-            logging.debug(cookie)
-        logging.debug('-' * 80)
-
     def login(self):
+        self.logged_in = False
         self.session.cookies.set('i', self.school_id,
                                  domain=self.base_domain, secure=True)
         self.session.cookies.set('complianceCookie', 'on',
                                  domain=self.base_domain)
 
-        self.get_ikey()
+        self.__get_ikey()
 
-        self.get_public_key()
-        # self.print_session('after getting the public key')
+        self.__get_public_key()
+        # self.__print_session('after getting the public key')
 
-        self.post_rsa_handshake()
-        # self.print_session('after rsa handshake')
+        self.__post_rsa_handshake()
+        # self.__print_session('after rsa handshake')
 
-        self.ajax_login()
-        # self.print_session('after ajax login')
+        self.__ajax_login()
+        # self.__print_session('after ajax login')
 
-        self.ajax_login_user()
-        # self.print_session('after ajax logging in user')
+        self.__ajax_login_user()
+        # self.__print_session('after ajax logging in user')
 
-    def get_ikey(self):
+        self.logged_in = True
+
+    def logout(self) -> None:
+        if self.logged_in:
+            self.get('index.php?logout=1')
+            self.logged_in = False
+
+    def get(self, relative_url: str) -> str:
+        response = self.session.get(self.__get_url(relative_url),
+                                    timeout=self.timeout)
+        response.raise_for_status()
+
+        return response.text
+
+    def __get_ikey(self):
         html = self.get('index.php?i={id}'.format(id=self.school_id))
         soup = BeautifulSoup(html, 'html.parser')
         for i in soup.find_all('input'):
@@ -90,33 +99,33 @@ class SphSession:
                 return
         raise Exception("Unable to find ikey")
 
-    def get_public_key(self):
+    def __get_public_key(self):
         response = self.get('ajax.php?f=rsaPublicKey')
         rsp = json.loads(response)
         self.rsa = RsaCrypto(rsp['publickey'])
 
-    def post_rsa_handshake(self):
+    def __post_rsa_handshake(self):
         # Encrypt the session key with the public RSA key
         enc_session_key = self.rsa.encrypt(self.session_key)
-        data = 'key=' + urllib.parse.quote_plus(enc_session_key)
+        payload = 'key=' + urllib.parse.quote_plus(enc_session_key)
 
         s = random.randint(0, 1999)
 
         header = self.session.headers.copy()
-        header.update(
-            {'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'})
+        header.update({'content-type':
+                       'application/x-www-form-urlencoded; charset=UTF-8'})
         header.update({'origin': self.base_url})
-        header.update({'referer': '{base_url}/index.php?i={school_id}'
-                       .format(base_url=self.base_url, school_id=self.school_id)})
+        header.update({'referer': self.__get_url('index.php?i={id}'
+                                                 .format(id=self.school_id))})
 
-        response = self.session.post('{base_url}/ajax.php?f=rsaHandshake&s={s}'
-                                     .format(base_url=self.base_url, s=s),
-                                     headers=header, data=data, timeout=self.timeout)
+        response = self.session.post(url=self.__get_url('ajax.php?f=rsaHandshake&s={s}'
+                                                        .format(s=s)),
+                                     headers=header, data=payload, timeout=self.timeout)
         response.raise_for_status()
 
         rsp = json.loads(response.content)
-        decrypted_challenge = self.aes.decrypt(
-            rsp['challenge'], self.session_key)
+        decrypted_challenge = self.aes.decrypt(rsp['challenge'],
+                                               self.session_key)
 
         if self.session_key != decrypted_challenge:
             raise Exception(
@@ -124,21 +133,21 @@ class SphSession:
 
         logging.debug("Decrypted challenge matches session key!")
 
-    def ajax_login(self):
-        sid_cookie = self.get_cookie_value('sid')
+    def __ajax_login(self):
+        sid_cookie = self.__get_cookie_value('sid')
         if sid_cookie is None:
             return
-        response = self.session.post('{base_url}/ajax_login.php'.format(base_url=self.base_url),
-                                     'name={}'.format(sid_cookie), timeout=self.timeout)
+        response = self.session.post(url=self.__get_url('ajax_login.php'),
+                                     data='name={}'.format(sid_cookie), timeout=self.timeout)
         response.raise_for_status()
 
-    def ajax_login_user(self):
+    def __ajax_login_user(self):
         # example form data:
         # "f=alllogin&art=all&sid=&ikey=<ikey.from.index.php>&user=<User.Name>&passw=<User.Pass>"
         form_data = "f=alllogin&art=all&sid=&ikey={ikey}&user={user}&passw={pw}".format(
             ikey=self.ikey, user=self.user, pw=self.password)
-        enc_form_data = self.aes.encrypt(
-            form_data.encode("utf-8"), self.session_key)
+        enc_form_data = self.aes.encrypt(form_data.encode("utf-8"),
+                                         self.session_key)
         data = 'crypt=' + urllib.parse.quote_plus(enc_form_data)
 
         header = self.session.headers.copy()
@@ -152,9 +161,9 @@ class SphSession:
                                      headers=header, data=data, timeout=self.timeout)
         response.raise_for_status()
 
-        self.evaluate_login_response(response)
+        self.__evaluate_login_response(response)
 
-    def evaluate_login_response(self, response: Response):
+    def __evaluate_login_response(self, response: Response):
         if len(response.content) == 0:
             raise Exception("Failed to login: {}".format(self.user))
 
@@ -177,19 +186,19 @@ class SphSession:
 
         logging.debug("Login result: {}".format(msg))
 
-    def get_cookie_value(self, name: str):
+    def __get_cookie_value(self, name: str):
         for c in self.session.cookies:
             if c.name == name:
                 return c.value
         return None
 
-    def logout(self) -> None:
-        self.get('index.php?logout=1')
+    def __get_url(self, relative_url: str) -> str:
+        return "{base_url}/{url}".format(base_url=self.base_url,
+                                         url=relative_url)
 
-    def get(self, relative_url: str) -> str:
-        url = "{base_url}/{url}".format(base_url=self.base_url,
-                                        url=relative_url)
-        response = self.session.get(url, timeout=self.timeout)
-        response.raise_for_status()
-
-        return response.text
+    def __print_session(self, explanation: str):
+        logging.debug('-' * 80)
+        logging.debug('--- Cookies: {}'.format(explanation))
+        for cookie in self.session.cookies:
+            logging.debug(cookie)
+        logging.debug('-' * 80)

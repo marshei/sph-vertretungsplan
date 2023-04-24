@@ -58,8 +58,8 @@ def get_delegation_html(school: SphSchool, user: str, password: str) -> Beautifu
     sph_session = SphSession(school_id=school.get_id(),
                              user=user, password=password)
 
-    sph_session.login()
     try:
+        sph_session.login()
         delegation_txt = sph_session.get('vertretungsplan.php')
         soup = BeautifulSoup(delegation_txt, 'html.parser')
         file = open("vertretungsplan.html", 'w')
