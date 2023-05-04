@@ -10,7 +10,6 @@ import sys
 import traceback
 
 from datetime import datetime
-from types import NoneType
 from typing import Any
 import pytz
 
@@ -181,7 +180,7 @@ class SphExecutor:
             elif isinstance(class_value, str):
                 if class_value.startswith(div_class_begins_with):
                     result.append(div)
-            elif isinstance(class_value, NoneType):
+            elif class_value is None:
                 pass
             else:
                 raise SphException("Invalid type: " + str(type(class_value)))
