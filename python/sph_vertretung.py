@@ -10,6 +10,7 @@ import sys
 import traceback
 
 from datetime import datetime
+from types import NoneType
 from typing import Any
 import pytz
 
@@ -154,10 +155,37 @@ class SphExecutor:
             except IOError as io_exception:
                 logging.warning("Writing html file failed: %s",
                                 str(io_exception))
+            self.__check_delegation_html(soup)
 
             return soup
         except SphSessionException as exception:
             raise SphException("Failed to get delegation html") from exception
+
+    def __check_delegation_html(self, soup: BeautifulSoup) -> None:
+        alerts = self.__get_divs_class_beginning_with(soup, "alert")
+        if len(alerts) > 0:
+            raise SphException("Not logged in any longer!")
+
+    def __get_divs_class_beginning_with(self, soup: BeautifulSoup, div_class_begins_with: str):
+        result = []
+        for div in soup.find_all('div'):
+            class_value = div.get('class')
+            if isinstance(class_value, list):
+                found = False
+                for clazz in class_value:
+                    if clazz is not None and clazz.startswith(div_class_begins_with):
+                        found = True
+                        break
+                if found:
+                    result.append(div)
+            elif isinstance(class_value, str):
+                if class_value.startswith(div_class_begins_with):
+                    result.append(div)
+            elif isinstance(class_value, NoneType):
+                pass
+            else:
+                raise SphException("Invalid type: " + str(type(class_value)))
+        return result
 
     def __get_divs_id_beginning_with(self, soup: BeautifulSoup, div_id_begins_with: str):
         result = []
