@@ -1,3 +1,5 @@
+""" Provide AES and RSA cryptography """
+
 import base64
 import hashlib
 import logging
@@ -9,7 +11,8 @@ from Cryptodome.PublicKey import RSA
 from Cryptodome.Util.Padding import pad, unpad
 
 
-def bytes_to_key(data, salt, output=48):
+def bytes_to_key(data, salt, output=48) -> bytes:
+    """ Calculate key """
     # extended from https://gist.github.com/gsakkis/4546068
     assert len(salt) == 8, len(salt)
     data += salt
@@ -22,12 +25,11 @@ def bytes_to_key(data, salt, output=48):
 
 
 class AesCrypto:
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.BLOCK_SIZE = 16
+    """ AES cryptography """
+    BLOCK_SIZE = 16
 
     def encrypt(self, message, passphrase):
+        """ encrypt message """
         salt = Random.new().read(8)
         key_iv = bytes_to_key(passphrase, salt, 32 + 16)
         key = key_iv[:32]
@@ -36,6 +38,7 @@ class AesCrypto:
         return base64.b64encode(b"Salted__" + salt + aes.encrypt(pad(message, self.BLOCK_SIZE)))
 
     def decrypt(self, encrypted, passphrase):
+        """ decrypt message """
         encrypted = base64.b64decode(encrypted)
         assert encrypted[0:8] == b"Salted__"
         salt = encrypted[8:16]
@@ -46,6 +49,7 @@ class AesCrypto:
         return unpad(aes.decrypt(encrypted[16:]), self.BLOCK_SIZE)
 
     def cycle(self, message, passphrase):
+        """ Test cycle """
         message = message.encode("utf-8")
         passphrase = passphrase.encode("utf-8")
         print("Original data:")
@@ -66,6 +70,7 @@ class AesCrypto:
 
 
 class RsaCrypto:
+    """ RSA cryptography """
 
     def __init__(self, public_key: str) -> None:
         self.public_key = RSA.importKey(public_key)
@@ -76,6 +81,7 @@ class RsaCrypto:
         self.cipher_rsa = Cipher_PKCS1_v1_5.new(self.public_key)
 
     def encrypt(self, message: bytes) -> bytes:
+        """ encrypt message """
         # Encrypt the message with the public RSA key
         encrypted = base64.b64encode(self.cipher_rsa.encrypt(message))
         # logging.debug("Original Message : %s\nEncrypted Message: %s\n"
@@ -83,6 +89,7 @@ class RsaCrypto:
         return encrypted
 
     def decrypt(self, message: bytes) -> bytes:
+        """ decrypt message """
         ciphertext = base64.b64decode(message)
         length = len(ciphertext)
         offset = 0
@@ -93,11 +100,12 @@ class RsaCrypto:
                 current_length = self.default_length
             else:
                 current_length = remaining
-            logging.debug("Current length: %d" % current_length)
-            result.append(self.cipher_rsa.decrypt(ciphertext[offset: offset + current_length], b'DECRYPTION FAILED'))
+            logging.debug("Current length: %d", current_length)
+            result.append(self.cipher_rsa.decrypt(
+                ciphertext[offset: offset + current_length], b'DECRYPTION FAILED'))
             offset += current_length
 
         plaintext = b''.join(result)
-        logging.debug("Encrypted Message: %s\nDecrypted Message: %s\n"
-                      % (message.decode("utf-8"), plaintext.decode("utf-8")))
+        logging.debug("Encrypted Message: %s", message.decode("utf-8"))
+        logging.debug("Decrypted Message: %s", plaintext.decode("utf-8"))
         return plaintext

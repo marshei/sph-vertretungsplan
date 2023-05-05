@@ -1,3 +1,5 @@
+""" SPH configuration """
+
 import copy
 import logging
 import os
@@ -5,8 +7,11 @@ from typing import Any
 
 import yaml
 
+from sph.sph_exception import SphException
+
 
 class SphConfig:
+    """ SPH configuration """
     NOT_PRESENT = '<Not Set>'
     PRESENT = '<Set>'
 
@@ -19,12 +24,14 @@ class SphConfig:
             self.config['read-from-file'] = False
         self.config['config-dir'] = os.path.dirname(
             os.path.abspath(self.filename))
-        logging.info("Config: {}".format(self))
+        logging.info("Config: %s", str(self))
 
     def has_key(self, key: str) -> bool:
+        """ Test for presence of the given key """
         return key in self.config
 
     def get(self, key: str) -> Any:
+        """ Get the configuration for key """
         return self.config[key]
 
     def __getitem__(self, key: str) -> Any:
@@ -53,9 +60,9 @@ class SphConfig:
             return self.PRESENT
 
     def __get_configuration_from_file(self) -> dict[str, Any]:
-        with open(self.filename, "r") as stream:
+        with open(self.filename, "r", encoding="utf-8") as stream:
             try:
                 return yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                raise Exception("Failed to parse configuration file: {e}"
-                                .format(e=str(exc)))
+                raise SphException(
+                    f"Failed to parse configuration file: {str(exc)}") from exc

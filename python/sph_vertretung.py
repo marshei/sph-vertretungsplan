@@ -23,6 +23,7 @@ from sph.sph_config import SphConfig
 from sph.sph_school import SphSchool
 from sph.sph_session import SphSessionException
 from sph.sph_session import SphSession
+from sph.sph_exception import SphException
 
 
 class TimezoneAwareLogFormatter(logging.Formatter):
@@ -54,10 +55,6 @@ consoleHandler.setLevel(logging.INFO)
 consoleHandler.setFormatter(logFormatter)
 rootLogger.addHandler(consoleHandler)
 rootLogger.setLevel(logging.INFO)
-
-
-class SphException(Exception):
-    """ Indicating an exception related to the SPH checks """
 
 
 class SphExecutor:

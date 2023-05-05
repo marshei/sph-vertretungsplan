@@ -94,6 +94,7 @@ class SphSession:
         if self.logged_in:
             self.get('index.php?logout=1')
             self.logged_in = False
+            logging.debug("Logged out")
 
     def get(self, relative_url: str) -> str:
         """ Return the response text of the given relative URL """
@@ -133,8 +134,8 @@ class SphSession:
         header.update({'content-type':
                        'application/x-www-form-urlencoded; charset=UTF-8'})
         header.update({'origin': self.base_url})
-        header.update({'referer': self.__get_url('index.php?i={id}'
-                                                 .format(id=self.school_id))})
+        header.update({'referer':
+                       self.__get_url(f'index.php?i={self.school_id}')})
 
         try:
             response = self.session.post(url=self.__get_url(f"ajax.php?f=rsaHandshake&s={s}"),
