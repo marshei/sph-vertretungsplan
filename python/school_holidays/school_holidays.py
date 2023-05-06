@@ -18,14 +18,15 @@ class SchoolHolidays:
                 if year in year_config:
                     self.holiday_config = year_config[year]
 
-        for holiday in self.holiday_config:
-            if 'name' not in holiday or 'from' not in holiday or 'to' not in holiday:
-                raise SphException(
-                    f"Invalid holiday configuration: {str(holiday)}")
+        if self.holiday_config is not None:
+            for holiday in self.holiday_config:
+                if 'name' not in holiday or 'from' not in holiday or 'to' not in holiday:
+                    raise SphException(
+                        f"Invalid holiday configuration: {str(holiday)}")
 
-            if not isinstance(holiday['from'], date) or not isinstance(holiday['to'], date):
-                raise SphException(
-                    f"Invalid holiday configuration: {str(holiday)}")
+                if not isinstance(holiday['from'], date) or not isinstance(holiday['to'], date):
+                    raise SphException(
+                        f"Invalid holiday configuration: {str(holiday)}")
 
     def is_holiday_today(self) -> bool:
         """ Checks whether today is a school holiday """
