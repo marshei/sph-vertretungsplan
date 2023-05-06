@@ -35,9 +35,9 @@ class SphSchool:
     def __search_institution_id(self) -> str:
         school_list = self.__get_school_list()
         for school_area in school_list:
-            for school in school_area[u'Schulen']:
-                if self.school_name in school[u'Name'] and self.school_city in school[u'Ort']:
-                    return school[u'Id']
+            for school in school_area['Schulen']:
+                if self.school_name in school['Name'] and self.school_city in school['Ort']:
+                    return school['Id']
         raise SphException(
             f"Could not find Id for school {self.school_name} in {self.school_city}")
 
