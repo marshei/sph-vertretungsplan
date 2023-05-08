@@ -193,7 +193,7 @@ class SphExecutor:
 
     def __push_message(self, event: dict[str, str]) -> str:
         return f"{event['Datum']}: {event['Hinweis']} im Fach {event['Fach']} " \
-            "in Stunde {event['Stunde']}"
+            f"in Stunde {event['Stunde']}"
 
 
 def parse_arguments() -> Any:
