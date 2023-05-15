@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+SCRIPT_HOME="$(dirname $(readlink -f $0))"
+
 function clean_up()
 {
     echo "Cleanup ..."
@@ -15,7 +17,13 @@ then
     exit 1
 fi
 
-podman build --no-cache --tag "${IMAGE_FQN}" .
+podman build --no-cache --tag "${IMAGE_FQN}" "${SCRIPT_HOME}"
+RTN=$?
+if [ $RTN -ne 0 ]
+then
+    echo "Building ${IMAGE_FQN} failed ..."
+    exit $RTN
+fi
 
 podman push "${IMAGE_FQN}"
 
