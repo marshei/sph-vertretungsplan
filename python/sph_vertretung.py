@@ -23,7 +23,7 @@ from sph.sph_config import SphConfig
 from sph.sph_school import SphSchool
 from sph.sph_session import SphSessionException
 from sph.sph_session import SphSession
-from sph.sph_exception import SphException
+from sph.sph_exception import SphException, SphLoggedOutException
 
 
 class TimezoneAwareLogFormatter(logging.Formatter):
@@ -101,6 +101,9 @@ class SphExecutor:
                 self.__parse_delegation_html(self.config['class'],
                                              self.config['fields'])
                 return True
+            except SphLoggedOutException as exception:
+                logging.error("Failed to process html: %s", str(exception))
+                self.__logout()
             except SphException as exception:
                 traceback.print_exc()
                 logging.error("Failed to process html: %s", str(exception))
@@ -160,7 +163,7 @@ class SphExecutor:
     def __check_delegation_html(self, soup: BeautifulSoup) -> None:
         alerts = self.__get_divs_class_beginning_with(soup, "alert")
         if len(alerts) > 0:
-            raise SphException("Not logged in any longer!")
+            raise SphLoggedOutException("Not logged in any longer!")
 
     def __get_divs_class_beginning_with(self, soup: BeautifulSoup, div_class_begins_with: str):
         result = []
