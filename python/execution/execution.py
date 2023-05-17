@@ -38,9 +38,9 @@ class Execution:
 
     def run_scheduled(self, func) -> None:
         """ Run the callback once or periodically """
+        self.__run_function(func)
         if len(self.cron) == 0:
-            logging.warning("No schedule, executing once!")
-            self.__run_function(func)
+            logging.warning("No schedule, executed once!")
             return
 
         while True:
