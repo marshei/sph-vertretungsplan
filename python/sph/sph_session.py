@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 from requests import HTTPError, Response
 
 from sph.crypto import AesCrypto, RsaCrypto
+from sph.sph_html import SphHtml
 
 
 def generate_uuid():
@@ -204,6 +205,12 @@ class SphSession:
                 logging.debug("Received login response: %s\n%s",
                               response.status_code, response.text)
                 msg = str(exception)
+        elif 'text/html' in response.headers['content-type']:
+            sph_html = SphHtml(response.text)
+            if sph_html.is_logged_out():
+                raise SphSessionException("Login failed!")
+            else:
+                msg = "logged in with HTMl response!"
         else:
             logging.debug("Received login response: %s\n%s",
                           response.status_code, response.text)
