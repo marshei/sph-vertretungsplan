@@ -1,10 +1,8 @@
-ARG UBI9_MINIMAL_IMAGE_VERSION="9.2-691"
-
-FROM ubi9-minimal:${UBI9_MINIMAL_IMAGE_VERSION} AS install-resource-provider
+FROM fedora:38 AS install-resource-provider
 USER root
 
-RUN microdnf install -y findutils && \
-    microdnf clean all && \
+RUN dnf -y install findutils && \
+    dnf clean all && \
     mkdir -p /app/config
 
 COPY requirements.txt /app/requirements.txt
@@ -15,12 +13,13 @@ RUN find /app -not -path "/app/venv/*" | grep -E "(/__pycache__$|\.pyc$|\.pyo$)"
 # ---------------------------------------------
 # Build the final image
 # ---------------------------------------------
-FROM ubi9-minimal:${UBI9_MINIMAL_IMAGE_VERSION}
+FROM fedora:38
 USER root
 
-RUN microdnf install -y python3.9 python3.9-pip && \
-    microdnf reinstall -y tzdata && \
-    microdnf clean all
+RUN dnf -y upgrade && \
+    dnf install -y python3.11 python3.11-pip && \
+    dnf reinstall -y tzdata && \
+    dnf clean all
 
 COPY --from=install-resource-provider /app /app
 WORKDIR /app
@@ -32,6 +31,6 @@ VOLUME [ "/app/config" ]
 
 ENV TZ=Europe/Berlin
 
-ENTRYPOINT [ "/usr/libexec/platform-python", "/app/sph_vertretung.py", "--config-file", "/app/config/sph.yml" ]
+ENTRYPOINT [ "python3", "/app/sph_vertretung.py", "--config-file", "/app/config/sph.yml" ]
 
 LABEL description="Schulportal Hessen - Vertretungsplan"
