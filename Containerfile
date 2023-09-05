@@ -1,9 +1,7 @@
 FROM fedora:38 AS install-resource-provider
 USER root
 
-RUN dnf -y install findutils && \
-    dnf clean all && \
-    mkdir -p /app/config
+RUN mkdir -p /app/config
 
 COPY requirements.txt /app/requirements.txt
 COPY python/ /app/
