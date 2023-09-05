@@ -8,11 +8,8 @@ import time
 import urllib.parse
 
 import requests
-from bs4 import BeautifulSoup
-from requests import HTTPError, Response
-
+from requests import HTTPError
 from sph.crypto import AesCrypto, RsaCrypto
-from sph.sph_html import SphHtml
 
 
 def generate_uuid():
@@ -47,6 +44,8 @@ class SphSession:
         self.timeout = 30
         self.base_domain = 'start.schulportal.hessen.de'
         self.base_url = f'https://{self.base_domain}'
+        self.login_domain = 'login.schulportal.hessen.de'
+        self.login_base_url = f'https://{self.login_domain}'
         self.school_id = school_id
         self.user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 ' \
                           'Safari/537.36 '
@@ -74,7 +73,7 @@ class SphSession:
             self.session.cookies.set('complianceCookie', 'on',
                                      domain=self.base_domain)
 
-            self.__get_ikey()
+            self.__initial_login()
 
             self.__get_public_key()
             # self.__print_session('after getting the public key')
@@ -84,9 +83,6 @@ class SphSession:
 
             self.__ajax_login()
             # self.__print_session('after ajax login')
-
-            self.__ajax_login_user()
-            # self.__print_session('after ajax logging in user')
 
             self.logged_in = True
 
@@ -100,24 +96,28 @@ class SphSession:
     def get(self, relative_url: str) -> str:
         """ Return the response text of the given relative URL """
         try:
-            response = self.session.get(self.__get_url(relative_url),
-                                        timeout=self.timeout)
+            response = self.session.get(self.__get_url(relative_url), timeout=self.timeout)
             response.raise_for_status()
             return response.text
         except HTTPError as exception:
             raise SphSessionException(
                 f"Failed to retrieve from URL: {relative_url}") from exception
 
-    def __get_ikey(self):
-        html = self.get(f"index.php?i={self.school_id}")
-        soup = BeautifulSoup(html, 'html.parser')
-        for i in soup.find_all('input'):
-            name = i.get('name')
-            if name is not None and name == 'ikey':
-                self.ikey = i.get('value')
-                logging.debug("ikey=%s", self.ikey)
-                return
-        raise SphSessionException("Unable to find ikey")
+    def __initial_login(self):
+        payload = 'user2=' + self.user + '&user=' + self.school_id + '.' + self.user + \
+                  '&password=' + self.password
+        url = f"{self.login_base_url}/?i={self.school_id}"
+
+        header = self.session.headers.copy()
+        header.update({'content-type': 'application/x-www-form-urlencoded'})
+        header.update({'origin': self.login_base_url})
+        header.update({'referer': url})
+
+        try:
+            response = self.session.post(url=url, headers=header, data=payload, timeout=self.timeout)
+            response.raise_for_status()
+        except HTTPError as exception:
+            raise SphSessionException("Failed to post to URL") from exception
 
     def __get_public_key(self):
         response = self.get('ajax.php?f=rsaPublicKey')
@@ -132,11 +132,9 @@ class SphSession:
         s = random.randint(0, 1999)
 
         header = self.session.headers.copy()
-        header.update({'content-type':
-                       'application/x-www-form-urlencoded; charset=UTF-8'})
+        header.update({'content-type': 'application/x-www-form-urlencoded'})
         header.update({'origin': self.base_url})
-        header.update({'referer':
-                       self.__get_url(f'index.php?i={self.school_id}')})
+        header.update({'referer': self.__get_url(f'index.php?i={self.school_id}')})
 
         try:
             response = self.session.post(url=self.__get_url(f"ajax.php?f=rsaHandshake&s={s}"),
@@ -165,58 +163,6 @@ class SphSession:
             response.raise_for_status()
         except HTTPError as exception:
             raise SphSessionException("Failed to post to URL") from exception
-
-    def __ajax_login_user(self):
-        # example form data:
-        # "f=alllogin&art=all&sid=&ikey=<ikey.from.index.php>&user=<User.Name>&passw=<User.Pass>"
-        form_data = f"f=alllogin&art=all&sid=&ikey={self.ikey}&user={self.user}&passw={self.password}"
-        enc_form_data = self.aes.encrypt(form_data.encode("utf-8"),
-                                         self.session_key)
-        data = 'crypt=' + urllib.parse.quote_plus(enc_form_data)
-
-        header = self.session.headers.copy()
-        header.update({'content-type':
-                       'application/x-www-form-urlencoded; charset=UTF-8'})
-        header.update({'origin': self.base_url})
-        header.update({'referer': self.__get_url("index.php")})
-
-        try:
-            response = self.session.post(self.__get_url('ajax.php'),
-                                         headers=header, data=data, timeout=self.timeout)
-            response.raise_for_status()
-        except HTTPError as exception:
-            raise SphSessionException("Failed to post to URL") from exception
-
-        self.__evaluate_login_response(response)
-
-    def __evaluate_login_response(self, response: Response):
-        if len(response.content) == 0:
-            raise SphSessionException(f"Failed to login: {self.user}")
-
-        if ('text/plain' in response.headers['content-type'] and response.text.startswith("{")) \
-                or ('application/json' in response.headers['content-type']):
-            try:
-                rsp = json.loads(response.text)
-                rsp['name'] = '<Set>'
-                logging.debug("Received login response: %s\n%s",
-                              response.status_code, rsp)
-                msg = "logged in!"
-            except json.JSONDecodeError as exception:
-                logging.debug("Received login response: %s\n%s",
-                              response.status_code, response.text)
-                msg = str(exception)
-        elif 'text/html' in response.headers['content-type']:
-            sph_html = SphHtml(response.text)
-            if sph_html.is_logged_out():
-                raise SphSessionException("Login failed!")
-            else:
-                msg = "logged in with HTMl response!"
-        else:
-            logging.debug("Received login response: %s\n%s",
-                          response.status_code, response.text)
-            msg = response.text
-
-        logging.debug("Login result: %s", msg)
 
     def __get_cookie_value(self, name: str):
         for c in self.session.cookies:
