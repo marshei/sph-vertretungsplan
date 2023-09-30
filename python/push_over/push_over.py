@@ -34,7 +34,7 @@ def send_pushover_to_user(user_key: str, api_token: str, message: str) -> None:
 class PushOver:
     """ Pushover Support """
 
-    def __init__(self, push_config: dict[str, Any], config_dir: str) -> None:
+    def __init__(self, push_config: dict[str, Any], storage_dir: str) -> None:
         self.enabled = False
         self.push_users = {}
 
@@ -46,7 +46,7 @@ class PushOver:
                     f"Invalid PushOver configuration: {str(push_config)}")
 
             self.push_users = push_config['users']
-            self.hashes = Hashes(push_config['hash-file'], config_dir)
+            self.hashes = Hashes(push_config['hash-file'], storage_dir)
 
         if not self.enabled:
             logging.info("PushOver Messages are disabled!")

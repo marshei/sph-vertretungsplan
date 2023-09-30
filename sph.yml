@@ -1,4 +1,5 @@
 ---
+  storage-directory: /app/data
   user: "<SPH.User>"
   password: "<SPH.Password>"
   # Specify either school city and name or id (preferred)

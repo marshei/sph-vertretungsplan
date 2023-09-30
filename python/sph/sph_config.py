@@ -22,8 +22,6 @@ class SphConfig:
             self.config['read-from-file'] = True
         else:
             self.config['read-from-file'] = False
-        self.config['config-dir'] = os.path.dirname(
-            os.path.abspath(self.filename))
         logging.info("Config: %s", str(self))
 
     def has_key(self, key: str) -> bool:
@@ -33,6 +31,16 @@ class SphConfig:
     def get(self, key: str) -> Any:
         """ Get the configuration for key """
         return self.config[key]
+
+    def get_storage_directory(self):
+        if self.has_key("storage-directory"):
+            return self.get("storage-directory").rstrip("/")
+        else:
+            return os.path.dirname(os.path.abspath(self.filename))
+
+    def get_storage_filename(self, filename: str) -> str:
+        storage_dir = self.get_storage_directory()
+        return storage_dir + "/" + filename
 
     def __getitem__(self, key: str) -> Any:
         if key in self.config:

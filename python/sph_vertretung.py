@@ -69,7 +69,7 @@ class SphExecutor:
             school_id=config["school-id"],
         )
         self.holiday = SchoolHolidays(config["school-holidays"])
-        self.push_service = PushOver(config["push-over"], config["config-dir"])
+        self.push_service = PushOver(config["push-over"], self.config.get_storage_directory())
         self.execution = Execution(config["execution"], self.push_service)
 
         self.session = SphSession(
@@ -158,7 +158,7 @@ class SphExecutor:
         try:
             delegation_txt = self.session.get("vertretungsplan.php")
             sph_html = SphHtml(delegation_txt)
-            sph_html.write_html_file("vertretungsplan.html")
+            sph_html.write_html_file(self.config.get_storage_filename("vertretungsplan.html"))
             if sph_html.is_logged_out():
                 raise SphLoggedOutException("Not logged in any longer!")
             return sph_html

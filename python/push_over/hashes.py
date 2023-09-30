@@ -7,11 +7,11 @@ import os
 class Hashes:
     """Hash File Support"""
 
-    def __init__(self, filename: str, config_dir: str) -> None:
+    def __init__(self, filename: str, storage_dir: str) -> None:
         if filename.startswith("/"):
             self.filename = filename
         else:
-            self.filename = config_dir + "/" + filename
+            self.filename = storage_dir + "/" + filename
         with open(file=self.filename, mode="a", encoding="utf-8"):
             pass
         logging.debug("Using hash file %s", self.filename)
