@@ -31,7 +31,7 @@ class DelegationTable:
         self.note_idx = -1
         self.note2_idx = -1
 
-        # print(self.table.prettify())
+        # print(self.table)
         count = 0
         for header in self.table_headers:
             txt = header.text.strip()

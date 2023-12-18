@@ -8,21 +8,22 @@ import logging
 import signal
 import sys
 import traceback
-
 from datetime import datetime
 from typing import Any
+
 import pytz
 
 from delegation_table import DelegationTable
 from execution.execution import Execution
+from information_table import InformationTable
 from push_over.push_over import PushOver
 from school_holidays.school_holidays import SchoolHolidays
 from sph.sph_config import SphConfig
+from sph.sph_exception import SphException, SphLoggedOutException
 from sph.sph_html import SphHtml
 from sph.sph_school import SphSchool
-from sph.sph_session import SphSessionException
 from sph.sph_session import SphSession
-from sph.sph_exception import SphException, SphLoggedOutException
+from sph.sph_session import SphSessionException
 
 
 class TimezoneAwareLogFormatter(logging.Formatter):
@@ -146,12 +147,18 @@ class SphExecutor:
                 logging.info("Skipping %s ...", date.strftime("%d.%m.%Y"))
                 continue
 
-            table = div.find_next(
+            # Process info table
+            info_element = div.find_next("table", {"class": "infos"})
+            info_table = InformationTable(clazz, fields, date_str, info_element)
+            for info_event in info_table.search_by_class_and_fields():
+                self.push_service.send(info_event, self.__push_info_message(info_event))
+
+            # Process delegation table
+            table_element = div.find_next(
                 "table", {"id": div.get("id").replace("tag", "vtable")}
             )
-            table = DelegationTable(clazz, fields, date_str, table)
-            events = table.search_by_class()
-            for event in events:
+            table = DelegationTable(clazz, fields, date_str, table_element)
+            for event in table.search_by_class():
                 self.push_service.send(event, self.__push_message(event))
 
     def __get_delegation_html(self) -> SphHtml:
@@ -164,6 +171,11 @@ class SphExecutor:
             return sph_html
         except SphSessionException as exception:
             raise SphException("Failed to get delegation html") from exception
+
+    def __push_info_message(self, event: dict[str, str]) -> str:
+        return (
+            f"{event['Datum']}: {event['Info']}"
+        )
 
     def __push_message(self, event: dict[str, str]) -> str:
         return (
