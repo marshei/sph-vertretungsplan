@@ -1,4 +1,4 @@
-FROM fedora:38 AS install-resource-provider
+FROM fedora:39 AS install-resource-provider
 USER root
 
 RUN mkdir -p /app/config
@@ -11,11 +11,11 @@ RUN find /app -not -path "/app/venv/*" | grep -E "(/__pycache__$|\.pyc$|\.pyo$)"
 # ---------------------------------------------
 # Build the final image
 # ---------------------------------------------
-FROM fedora:38
+FROM fedora:39
 USER root
 
 RUN dnf -y upgrade && \
-    dnf install -y python3.11 python3.11-pip && \
+    dnf install -y python3.12 python3.12-pip && \
     dnf reinstall -y tzdata && \
     dnf clean all
 
