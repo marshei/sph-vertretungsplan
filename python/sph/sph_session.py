@@ -117,7 +117,8 @@ class SphSession:
             response = self.session.post(url=url, headers=header, data=payload, timeout=self.timeout)
             response.raise_for_status()
         except HTTPError as exception:
-            raise SphSessionException("Failed to post to URL") from exception
+            raise SphSessionException(
+                f"Failed to post to URL: {url}; HTTP code: {exception.response.status_code}") from exception
 
     def __get_public_key(self):
         response = self.get('ajax.php?f=rsaPublicKey')
@@ -136,20 +137,19 @@ class SphSession:
         header.update({'origin': self.base_url})
         header.update({'referer': self.__get_url(f'index.php?i={self.school_id}')})
 
+        url = self.__get_url(f"ajax.php?f=rsaHandshake&s={s}")
         try:
-            response = self.session.post(url=self.__get_url(f"ajax.php?f=rsaHandshake&s={s}"),
-                                         headers=header, data=payload, timeout=self.timeout)
+            response = self.session.post(url=url, headers=header, data=payload, timeout=self.timeout)
             response.raise_for_status()
         except HTTPError as exception:
-            raise SphSessionException("Failed to post to URL") from exception
+            raise SphSessionException(
+                f"Failed to post to URL: {url}; HTTP code: {exception.response.status_code}") from exception
 
         rsp = json.loads(response.content)
-        decrypted_challenge = self.aes.decrypt(rsp['challenge'],
-                                               self.session_key)
+        decrypted_challenge = self.aes.decrypt(rsp['challenge'], self.session_key)
 
         if self.session_key != decrypted_challenge:
-            raise SphSessionException(
-                "Decrypted challenge does not match the session key!")
+            raise SphSessionException("Decrypted challenge does not match the session key!")
 
         logging.debug("Decrypted challenge matches session key!")
 
@@ -157,12 +157,13 @@ class SphSession:
         sid_cookie = self.__get_cookie_value('sid')
         if sid_cookie is None:
             return
+        url = self.__get_url('ajax_login.php')
         try:
-            response = self.session.post(url=self.__get_url('ajax_login.php'),
-                                         data=f'name={sid_cookie}', timeout=self.timeout)
+            response = self.session.post(url=url, data=f'name={sid_cookie}', timeout=self.timeout)
             response.raise_for_status()
         except HTTPError as exception:
-            raise SphSessionException("Failed to post to URL") from exception
+            raise SphSessionException(
+                f"Failed to post to URL: {url}; HTTP code: {exception.response.status_code}") from exception
 
     def __get_cookie_value(self, name: str):
         for c in self.session.cookies:
