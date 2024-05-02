@@ -1,4 +1,4 @@
-FROM fedora:39 AS install-resource-provider
+FROM fedora:40 AS install-resource-provider
 USER root
 
 RUN mkdir -p /app/config
@@ -11,7 +11,7 @@ RUN find /app -not -path "/app/venv/*" | grep -E "(/__pycache__$|\.pyc$|\.pyo$)"
 # ---------------------------------------------
 # Build the final image
 # ---------------------------------------------
-FROM fedora:39
+FROM fedora:40
 USER root
 
 RUN dnf -y upgrade && \
