@@ -1,4 +1,4 @@
-FROM registry.fedoraproject.org/fedora-minimal:40 AS install-resource-provider
+FROM quay.io/fedora/fedora-minimal:41 AS install-resource-provider
 USER root
 
 RUN mkdir -p /app/config
@@ -11,11 +11,11 @@ RUN find /app -not -path "/app/venv/*" | grep -E "(/__pycache__$|\.pyc$|\.pyo$)"
 # ---------------------------------------------
 # Build the final image
 # ---------------------------------------------
-FROM registry.fedoraproject.org/fedora-minimal:40
+FROM quay.io/fedora/fedora-minimal:41
 USER root
 
 RUN microdnf -y upgrade && \
-    microdnf install -y python3.12 python3.12-pip && \
+    microdnf install -y python3.12 python3-pip && \
     microdnf reinstall -y tzdata && \
     microdnf clean all && \
     rm -fr /var/cache/dnf && \

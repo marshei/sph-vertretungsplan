@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-SCRIPT_HOME="$(dirname $(readlink -f $0))"
+SCRIPT_HOME="$(dirname "$(readlink -f "$0")")"
+IMAGE_PLATFORM="linux/amd64"
 
 function clean_up()
 {
@@ -17,7 +18,9 @@ then
     exit 1
 fi
 
-podman build --no-cache --tag "${IMAGE_FQN}" "${SCRIPT_HOME}"
+echo "Building ${IMAGE_FQN} ..."
+podman build --platform=${IMAGE_PLATFORM} \
+       --pull=always --no-cache --tag "${IMAGE_FQN}" "${SCRIPT_HOME}"
 RTN=$?
 if [ $RTN -ne 0 ]
 then
@@ -25,5 +28,13 @@ then
     exit $RTN
 fi
 
+echo
+echo "Pushing ${IMAGE_FQN} to registry ..."
 podman push "${IMAGE_FQN}"
+RTN=$?
+if [ $RTN -ne 0 ]
+then
+    echo "Pushing ${IMAGE_FQN} failed ..."
+    exit $RTN
+fi
 
